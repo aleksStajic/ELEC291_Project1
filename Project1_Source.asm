@@ -11,7 +11,8 @@ org 0x000B
    
 ; Timer/Counter 2 overflow interrupt vector
 org 0x002B
-	reti
+    reti
+	
 
 ; These register definitions needed by 'math32.inc'
 DSEG at 30H
@@ -102,6 +103,8 @@ InitTimer2:
 	setb ET2
     ret
     
+
+    
 Init_Seed:
 	; Wait for a push of the BOOT button
 	; to initialize random seed:
@@ -186,7 +189,8 @@ forever:
 	play: ; activates tone
 		setb TR0
 	
-	slap_loop:
+
+	lcall pin0period
 	
 	; Wait a random time before playing the next sound
 	; Once a sound plays, it plays indefinitely till a slap occurs
@@ -195,4 +199,56 @@ forever:
 	
 	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
+	
+pin0period:
+    ; synchronize with rising edge of the signal applied to pin P0.0
+    clr TR2 ; Stop timer 2
+    mov TL2, #0
+    mov TH2, #0
+    clr TF2
+    setb TR2
+synch1:
+	jb TF2, no_signal ; If the timer overflows, we assume there is no signal
+    jb P0.0, synch1
+synch2:    
+	jb TF2, no_signal
+    jnb P0.0, synch2
+    
+    ; Measure the period of the signal applied to pin P0.0
+    clr TR2
+    mov TL2, #0
+    mov TH2, #0
+    clr TF2
+    setb TR2 ; Start timer 2
+measure1:
+	jb TF2, no_signal
+    jb P0.0, measure1
+measure2:    
+	jb TF2, no_signal
+    jnb P0.0, measure2
+    clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
+    Load_y(45211)
+    mov x+0, TL2
+    mov x+1, TH2
+    mov x+2, #0
+    mov x+3, #0
+    lcall mul32
+    Load_y(1000)
+    lcall div32
+    
+    Load_y(200000)
+    lcall x_lt_y
+    jb mf, no_signal
+    
+
+	; Convert the result to BCD and display on LCD
+	Set_Cursor(2, 1)
+	lcall hex2bcd
+	lcall Display_10_digit_BCD
+    ret 
+    
+no_signal:	
+	Set_Cursor(2, 1)
+    Send_Constant_String(#No_Signal_Str)
+    ljmp pin0period ; Repeat! 
 end
