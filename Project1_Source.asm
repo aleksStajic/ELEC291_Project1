@@ -160,6 +160,7 @@ main:
     lcall Initialize_All
     setb P0.0 ; Pin is used as input for 555 timer
     clr HLbit 
+    clr TR0 ; clear timer 0 so no sound when game first starts
 
 	Set_Cursor(1, 1)
     Send_Constant_String(#Initial_Message) 
@@ -182,18 +183,16 @@ forever:
 		mov RH0, #high(TIMER0_RELOAD2)
 		mov RL0, #low(TIMER0_RELOAD2)
 	
-	play:
+	play: ; activates tone
 		setb TR0
 	
-	Wait_Milli_Seconds(#250)
-	Wait_Milli_Seconds(#250)
-	Wait_Milli_Seconds(#250)
-	Wait_Milli_Seconds(#250)
-	Wait_Milli_Seconds(#250)
+	slap_loop:
 	
-	clr TR0
+	; Wait a random time before playing the next sound
+	; Once a sound plays, it plays indefinitely till a slap occurs
+	; Once a slap occurs, calculate points, and wait to play the next sound
+	; To wait for a slap to occur, potentially use some sort of loop
 	
+	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
-
-
 end
