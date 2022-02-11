@@ -380,37 +380,37 @@
 0598            312   ; Determine period for 555 timer for player 2
 0598            313   pin1period:
 0598            314       ; synchronize with rising edge of the signal applied to pin P0.0
-0598 C28E       315       clr TR1 ; Stop timer 2
-059A 758B00     316       mov TL1, #0
-059D 758D00     317       mov TH1, #0
-05A0 C28F       318       clr TF1 ; clear timer1 overflow flag
-05A2 D28E       319       setb TR1
+0598 C2CA       315       clr TR2 ; Stop timer 2
+059A 75CC00     316       mov TL2, #0
+059D 75CD00     317       mov TH2, #0
+05A0 C2CF       318       clr TF2 ; clear timer1 overflow flag
+05A2 D2CA       319       setb TR2
 05A4            320   synch1_1:
-05A4 208F67     321            jb TF1, no_signal_1_helper ; If the timer overflows, we assume there is no signal
+05A4 20CF67     321            jb TF2, no_signal_1_helper ; If the timer overflows, we assume there is no signal
 05A7 2081FA     322       jb P0.1, synch1_1
 05AA            323   synch2_1:    
-05AA 208F61     324            jb TF1, no_signal_1_helper
+05AA 20CF61     324            jb TF2, no_signal_1_helper
 05AD 3081FA     325       jnb P0.1, synch2_1
 05B0            326       
 05B0            327       ; Measure the period of the signal applied to pin P0.0
-05B0 C28E       328       clr TR1
-05B2 758B00     329       mov TL1, #0
-05B5 758D00     330       mov TH1, #0
-05B8 C28F       331       clr TF1
-05BA D28E       332       setb TR1 ; Start timer 2
+05B0 C2CA       328       clr TR2
+05B2 75CC00     329       mov TL2, #0
+05B5 75CD00     330       mov TH2, #0
+05B8 C2CF       331       clr TF2
+05BA D2CA       332       setb TR2 ; Start timer 2
 05BC            333   measure1_1:
-05BC 208F6F     334            jb TF1, no_signal_1
+05BC 20CF6F     334            jb TF2, no_signal_1
 05BF 2081FA     335       jb P0.1, measure1_1
 05C2            336   measure2_1:    
-05C2 208F69     337            jb TF1, no_signal_1
+05C2 20CF69     337            jb TF2, no_signal_1
 05C5 3081FA     338       jnb P0.1, measure2_1
-05C8 C28E       339       clr TR1 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
+05C8 C2CA       339       clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
 05CA 75349B     340            mov y+0, #low (45211 % 0x10000) 
 05CD 7535B0     340            mov y+1, #high(45211 % 0x10000) 
 05D0 753600     340            mov y+2, #low (45211 / 0x10000) 
 05D3 753700     340            mov y+3, #high(45211 / 0x10000) 
-05D6 858B30     341       mov x+0, TL1
-05D9 858D31     342       mov x+1, TH1
+05D6 85CC30     341       mov x+0, TL2
+05D9 85CD31     342       mov x+1, TH2
 05DC 753200     343       mov x+2, #0
 05DF 753300     344       mov x+3, #0
 05E2 1201A6     345       lcall mul32

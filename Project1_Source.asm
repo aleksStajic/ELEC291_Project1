@@ -312,34 +312,34 @@ zero_3x_bytes_0:
 ; Determine period for 555 timer for player 2
 pin1period:
     ; synchronize with rising edge of the signal applied to pin P0.0
-    clr TR1 ; Stop timer 2
-    mov TL1, #0
-    mov TH1, #0
-    clr TF1 ; clear timer1 overflow flag
-    setb TR1
+    clr TR2 ; Stop timer 2
+    mov TL2, #0
+    mov TH2, #0
+    clr TF2 ; clear timer1 overflow flag
+    setb TR2
 synch1_1:
-	jb TF1, no_signal_1_helper ; If the timer overflows, we assume there is no signal
+	jb TF2, no_signal_1_helper ; If the timer overflows, we assume there is no signal
     jb P0.1, synch1_1
 synch2_1:    
-	jb TF1, no_signal_1_helper
+	jb TF2, no_signal_1_helper
     jnb P0.1, synch2_1
     
     ; Measure the period of the signal applied to pin P0.0
-    clr TR1
-    mov TL1, #0
-    mov TH1, #0
-    clr TF1
-    setb TR1 ; Start timer 2
+    clr TR2
+    mov TL2, #0
+    mov TH2, #0
+    clr TF2
+    setb TR2 ; Start timer 2
 measure1_1:
-	jb TF1, no_signal_1
+	jb TF2, no_signal_1
     jb P0.1, measure1_1
 measure2_1:    
-	jb TF1, no_signal_1
+	jb TF2, no_signal_1
     jnb P0.1, measure2_1
-    clr TR1 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
+    clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
     Load_y(45211)
-    mov x+0, TL1
-    mov x+1, TH1
+    mov x+0, TL2
+    mov x+1, TH2
     mov x+2, #0
     mov x+3, #0
     lcall mul32
