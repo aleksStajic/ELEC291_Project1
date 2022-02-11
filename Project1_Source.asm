@@ -22,10 +22,14 @@ y:   ds 4
 bcd: ds 5
 
 Seed: ds 4
+Score1: ds 1
+Score2: ds 1
 
 BSEG
 mf: dbit 1
 HLbit: dbit 1
+
+PlayerWin: dbit 1 ; flag to tell who won: 0 - playerOne, 1 - playerTwo
 
 $NOLIST
 $include(math32.inc)
@@ -85,7 +89,7 @@ Timer0_Init:
 	mov RL0, #low(TIMER0_RELOAD1)
 	; Enable the timer and interrupts
     setb ET0  ; Enable timer 0 interrupt
-    setb TR0  ; DONT start timer 0 yet
+    clr TR0  ; DONT start timer 0 yet
 	ret
 
 ;---------------------------------;
@@ -179,11 +183,13 @@ main:
     setb P0.1 ; Pin for 555 timer for timer/counter1
     clr HLbit 
     clr TR0 ; clear timer 0 so no sound when game first starts
+    mov Score1, #0
+    mov Score2, #0
 
 	Set_Cursor(1, 1)
     ;Send_Constant_String(#Initial_Message) 
     
-
+; LETS SAY HIGHER TONE IS BADDDDDD
 forever:
 
 	; First part of the game: decide which freq to buzz at
@@ -204,18 +210,26 @@ forever:
 	play: ; activates tone
 		setb TR0
 	
-
-	lcall pin0period
+	lcall pin0period ; start check for capacitance (resulting in period) change
+	
+	; When pin0_period returns, a player will have either won a point or lost a 
+	; point (unless already at zero). Now we need to update scoreboard and 
+	; if there is a winner, declare the winner
+	
+	; to be done soon
+	
 	
 	; Wait a random time before playing the next sound
 	; Once a sound plays, it plays indefinitely till a slap occurs
 	; Once a slap occurs, calculate points, and wait to play the next sound
 	; To wait for a slap to occur, potentially use some sort of loop
 	
+	clr TR0
 	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
-	
-pin0period:
+
+; Determine period of 555 Timer for player 1
+pin0period: 
     ; synchronize with rising edge of the signal applied to pin P0.0
     clr TR2 ; Stop timer 2
     mov TL2, #0
@@ -223,10 +237,10 @@ pin0period:
     clr TF2 ; clear timer2 overflow flag
     setb TR2
 synch1:
-	jb TF2, no_signal ; If the timer overflows, we assume there is no signal
+	jb TF2, no_signal_helper ; If the timer overflows, we assume there is no signal
     jb P0.0, synch1
 synch2:    
-	jb TF2, no_signal
+	jb TF2, no_signal_helper
     jnb P0.0, synch2
     
     ; Measure the period of the signal applied to pin P0.0
@@ -255,17 +269,47 @@ measure2:
     lcall x_lt_y
     jb mf, no_signal
     
+    ; Handle winning a point
+    jb HLbit, dec_score1
+    ;mov a, Score1
+    ;add a, #1
+    ;da a
+    ;mov Score1, a
+    inc Score1
+    ljmp pin0_return
+    
+no_signal_helper:
+	ljmp no_signal
+    
+dec_score1:
+	mov a, Score1
+	jz pin0_return
+	;add a, #99
+	;da a
+	;mov Score1, a
+	dec Score1
 
+pin0_return:
 	; Convert the result to BCD and display on LCD
 	Set_Cursor(1, 1)
+	mov x, Score1
+	lcall zero_3x_bytes_0
 	lcall hex2bcd
 	lcall Display_10_digit_BCD
     ret 
-    
+
 no_signal:	
-	Set_Cursor(1, 1)
-    Send_Constant_String(#No_Signal_Str)
-        
+	Set_Cursor(2, 15)
+   	Display_char(#'!')
+    ljmp pin1period
+
+zero_3x_bytes_0:
+	mov x+1, #0
+	mov x+2, #0
+	mov x+3, #0
+	ret
+
+; Determine period for 555 timer for player 2
 pin1period:
     ; synchronize with rising edge of the signal applied to pin P0.0
     clr TR1 ; Stop timer 2
@@ -274,10 +318,10 @@ pin1period:
     clr TF1 ; clear timer1 overflow flag
     setb TR1
 synch1_1:
-	jb TF1, no_signal_1 ; If the timer overflows, we assume there is no signal
+	jb TF1, no_signal_1_helper ; If the timer overflows, we assume there is no signal
     jb P0.1, synch1_1
 synch2_1:    
-	jb TF1, no_signal_1
+	jb TF1, no_signal_1_helper
     jnb P0.1, synch2_1
     
     ; Measure the period of the signal applied to pin P0.0
@@ -302,19 +346,47 @@ measure2_1:
     Load_y(1000)
     lcall div32
     
-    Load_y(210000)
+    Load_y(208000)
     lcall x_lt_y
     jb mf, no_signal_1
     
+; Handle a press depending on tone
+    jb HLbit, dec_score2
+    ;mov a, Score2
+    ;add a, #1
+    ;da a
+    ;mov Score1, a
+    inc Score2
+    ljmp pin1_return
+    
+no_signal_1_helper:
+	ljmp no_signal_1
+    
+dec_score2:
+	mov a, Score2
+	jz pin1_return ; if already zero, go to end
+	;add a, #99
+	;da a
+	;mov Score2, a
+	dec Score2
 
+pin1_return:
 	; Convert the result to BCD and display on LCD
 	Set_Cursor(2, 1)
+	mov x, Score2
+	lcall zero_3x_bytes_1
 	lcall hex2bcd
 	lcall Display_10_digit_BCD
     ret 
     
 no_signal_1:	
-	Set_Cursor(2, 1)
-    Send_Constant_String(#No_Signal_Str1)
+	Set_Cursor(2, 15)
+   	Display_char(#'!')
     ljmp pin0period ; Repeat! 
+    
+zero_3x_bytes_1:
+	mov x+1, #0
+	mov x+2, #0
+	mov x+3, #0
+	ret
 end
