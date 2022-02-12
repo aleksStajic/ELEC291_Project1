@@ -10,7 +10,7 @@ org 0x000B
 	ljmp Timer0_ISR
 ; Timer/Counter 1 overflow interrupt vector
 org 0x001B
-	reti   
+	ljmp Timer1_ISR   
 ; Timer/Counter 2 overflow interrupt vector
 org 0x002B
     reti
@@ -28,6 +28,7 @@ Score2: ds 1
 BSEG
 mf: dbit 1
 HLbit: dbit 1
+abortFlag: dbit 1
 
 PlayerWin: dbit 1 ; flag to tell who won: 0 - playerOne, 1 - playerTwo
 
@@ -39,9 +40,9 @@ cseg
 CLK           EQU 22118400 ; Microcontroller system crystal frequency in Hz
 
 TIMER0_RATE1   EQU 4000     ; 2000Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
-TIMER0_RELOAD1 EQU ((65536-(CLK/TIMER0_RATE1)))
+TIMER0_RELOAD1 EQU ((65536-(CLK/TIMER0_RATE1))) ; LOW TONE
 TIMER0_RATE2   EQU 4200     ; 2100Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
-TIMER0_RELOAD2 EQU ((65536-(CLK/TIMER0_RATE2)))
+TIMER0_RELOAD2 EQU ((65536-(CLK/TIMER0_RATE2))) ; HIGH TONE
 
 ; These 'equ' must match the hardware wiring
 LCD_RS equ P3.2
@@ -100,15 +101,26 @@ Timer0_ISR:
 	cpl SOUND_OUT ; Connect speaker to P1.1!
 	reti
 
-;Initializes timer/counter 2 as a 16-bit timer
-InitTimer2:
-	mov T2CON, #0 ; Stop timer/counter.  Set as timer (clock input is pin 22.1184MHz).
-	; Set the reload value on overflow to zero (just in case is not zero)
-	mov RCAP2H, #0
-	mov RCAP2L, #0
-	setb ET2
-    ret
-    
+Timer1_ISR: 
+	;clr TF1 ; According to data sheet this is done for us already.
+	setb P2.0
+	Set_cursor(1,5)
+	Display_char(#'5')
+	Wait_Milli_Seconds(#250)
+	Set_cursor(1,6)
+	Display_char(#'6')
+	Wait_Milli_Seconds(#250)
+	Set_cursor(1,7)
+	Display_char(#'7')
+	Wait_Milli_Seconds(#250)
+	Set_cursor(1,8)
+	Display_char(#'8')
+	Wait_Milli_Seconds(#250)
+	Set_cursor(1,9)
+	Display_char(#'9')
+	;setb abortFlag
+	reti
+
 InitTimer1:
 	mov a, TMOD
 	anl a, #0x0f ; Clear the bits for timer 1
@@ -119,8 +131,18 @@ InitTimer1:
 	; Set autoreload value
 	mov RH1, #0
 	mov RL1, #0
-	clr IE1 ; set timer1 interrupt to 0
+	setb ET1 ; set timer1 interrupt to 1
+	clr TR1 ; don't start timer right away
 	ret
+
+;Initializes timer/counter 2 as a 16-bit timer
+InitTimer2:
+	mov T2CON, #0 ; Stop timer/counter.  Set as timer (clock input is pin 22.1184MHz).
+	; Set the reload value on overflow to zero (just in case is not zero)
+	mov RCAP2H, #0
+	mov RCAP2L, #0
+	setb ET2
+    ret
     
 Init_Seed:
 	; Wait for a push of the BOOT button
@@ -183,8 +205,11 @@ main:
     setb P0.1 ; Pin for 555 timer for timer/counter1
     clr HLbit 
     clr TR0 ; clear timer 0 so no sound when game first starts
+    clr abortFlag
     mov Score1, #0
     mov Score2, #0
+    
+    clr P2.0
 
 	Set_Cursor(1, 1)
     ;Send_Constant_String(#Initial_Message) 
@@ -198,16 +223,18 @@ forever:
 	mov c, acc.3
 	mov HLbit, c
 	jc setup_tone2 ; if carry is one, we play tone2
-	; if carry is zero, we play tone1
+	; if carry is zero, we play tone1, the LOW tone
 	mov RH0, #high(TIMER0_RELOAD1)
 	mov RL0, #low(TIMER0_RELOAD1)
 	ljmp play
 	
-	setup_tone2:
+	setup_tone2: ; get ready to play tone2, the HIGH tone
 		mov RH0, #high(TIMER0_RELOAD2)
 		mov RL0, #low(TIMER0_RELOAD2)
 	
+	
 	play: ; activates tone
+		setb TR1 ; start timer1 
 		setb TR0
 	
 	lcall pin0period ; start check for capacitance (resulting in period) change
@@ -227,9 +254,17 @@ forever:
 	clr TR0
 	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
+	
+tooSlow:
+	clr TF1
+	clr abortFlag
+	Set_cursor(1,5)
+	Display_char(#'$')
+	ljmp forever
 
 ; Determine period of 555 Timer for player 1
 pin0period: 
+	jb abortFlag, tooSlow
     ; synchronize with rising edge of the signal applied to pin P0.0
     clr TR2 ; Stop timer 2
     mov TL2, #0
@@ -295,7 +330,8 @@ pin0_return:
 	mov x, Score1
 	lcall zero_3x_bytes_0
 	lcall hex2bcd
-	lcall Display_10_digit_BCD
+	;lcall Display_10_digit_BCD
+	Display_BCD(Score1)
     ret 
 
 no_signal:	
@@ -376,7 +412,8 @@ pin1_return:
 	mov x, Score2
 	lcall zero_3x_bytes_1
 	lcall hex2bcd
-	lcall Display_10_digit_BCD
+	;lcall Display_10_digit_BCD
+	Display_BCD(Score2)
     ret 
     
 no_signal_1:	
