@@ -275,6 +275,9 @@ forever:
 tooSlow:
 	clr TR1
 	clr abortFlag
+	clr TR0 ; stop the buzzer
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
 	Set_cursor(1,12)
 	Display_char(#'$')
 	ljmp forever
@@ -321,6 +324,7 @@ measure2:
     lcall x_lt_y
     jb mf, no_signal
     
+    clr TR0 ; when a hit is detected, stop the buzzer
     ; Handle winning a point
     jb HLbit, dec_score1
     ;mov a, Score1
@@ -403,6 +407,7 @@ measure2_1:
     lcall x_lt_y
     jb mf, no_signal_1
     
+    clr TR0 ; when a hit is detected, stop the buzzer
 ; Handle a press depending on tone
     jb HLbit, dec_score2
     ;mov a, Score2
