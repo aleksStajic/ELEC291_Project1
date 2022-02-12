@@ -44,7 +44,7 @@ TIMER0_RATE1   EQU 4000     ; 2000Hz squarewave (peak amplitude of CEM-1203 spea
 TIMER0_RELOAD1 EQU ((65536-(CLK/TIMER0_RATE1))) ; LOW TONE
 TIMER0_RATE2   EQU 4200     ; 2100Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
 TIMER0_RELOAD2 EQU ((65536-(CLK/TIMER0_RATE2))) ; HIGH TONE
-TIMER1_RATE1   EQU 1000     ; 500Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
+TIMER1_RATE1   EQU 500     ; 250Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
 TIMER1_RELOAD1 EQU ((65536-(CLK/TIMER1_RATE1))) ; LOW TONE
 
 
