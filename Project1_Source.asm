@@ -20,6 +20,7 @@ DSEG at 30H
 x:   ds 4
 y:   ds 4
 bcd: ds 5
+Count1ms: ds 2
 
 Seed: ds 4
 Score1: ds 1
@@ -43,6 +44,9 @@ TIMER0_RATE1   EQU 4000     ; 2000Hz squarewave (peak amplitude of CEM-1203 spea
 TIMER0_RELOAD1 EQU ((65536-(CLK/TIMER0_RATE1))) ; LOW TONE
 TIMER0_RATE2   EQU 4200     ; 2100Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
 TIMER0_RELOAD2 EQU ((65536-(CLK/TIMER0_RATE2))) ; HIGH TONE
+TIMER1_RATE1   EQU 1000     ; 500Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
+TIMER1_RELOAD1 EQU ((65536-(CLK/TIMER1_RATE1))) ; LOW TONE
+
 
 ; These 'equ' must match the hardware wiring
 LCD_RS equ P3.2
@@ -103,22 +107,32 @@ Timer0_ISR:
 
 Timer1_ISR: 
 	;clr TF1 ; According to data sheet this is done for us already.
-	setb P2.0
-	Set_cursor(1,5)
-	Display_char(#'5')
-	Wait_Milli_Seconds(#250)
-	Set_cursor(1,6)
-	Display_char(#'6')
-	Wait_Milli_Seconds(#250)
-	Set_cursor(1,7)
-	Display_char(#'7')
-	Wait_Milli_Seconds(#250)
-	Set_cursor(1,8)
-	Display_char(#'8')
-	Wait_Milli_Seconds(#250)
-	Set_cursor(1,9)
-	Display_char(#'9')
-	;setb abortFlag
+	push acc
+	push psw
+	
+	inc Count1ms+0
+	mov a, Count1ms+0
+	jnz Inc_Done
+	inc Count1ms+1
+
+Inc_Done:
+    mov a, Count1ms+0
+    cjne a, #low(1000), Timer1_ISR_done
+    mov a, Count1ms+1
+    cjne a, #high(1000), Timer1_ISR_done
+
+	setb abortFlag
+	clr a 
+	
+	mov Count1ms+0, a
+	mov Count1ms+1, a
+	
+Timer1_ISR_done:
+    ;Set_cursor(2,7)
+    ;Display_char(#'g')
+    pop psw
+    pop acc
+    
 	reti
 
 InitTimer1:
@@ -126,11 +140,14 @@ InitTimer1:
 	anl a, #0x0f ; Clear the bits for timer 1
 	orl a, #0x10 ; Configure timer 1 as 16-timer
 	mov TMOD, a
-	mov TH1, #0
-	mov TL1, #0
+	mov TH1, #high(TIMER1_RELOAD1)
+	mov TL1, #low(TIMER1_RELOAD1)
+	clr a
+	mov Count1ms+0, a
+	mov Count1ms+1, a
 	; Set autoreload value
-	mov RH1, #0
-	mov RL1, #0
+	mov RH1, #high(TIMER1_RELOAD1)
+	mov RL1, #low(TIMER1_RELOAD1)
 	setb ET1 ; set timer1 interrupt to 1
 	clr TR1 ; don't start timer right away
 	ret
@@ -256,9 +273,9 @@ forever:
 	ljmp forever
 	
 tooSlow:
-	clr TF1
+	clr TR1
 	clr abortFlag
-	Set_cursor(1,5)
+	Set_cursor(1,12)
 	Display_char(#'$')
 	ljmp forever
 
