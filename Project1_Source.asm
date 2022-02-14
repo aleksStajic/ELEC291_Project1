@@ -280,8 +280,8 @@ tooSlow:
 	clr TR1
 	clr abortFlag
 	clr TR0 ; stop the buzzer
-	;Wait_Milli_Seconds(#250)
-	;Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
 	Set_cursor(1,12)
 	ljmp forever
 
@@ -295,10 +295,10 @@ pin0period:
     clr TF2 ; clear timer2 overflow flag
     setb TR2
 synch1:
-	jb TF2, no_signal_helper ; If the timer overflows, we assume there is no signal
+	jb TF2, no_signal0_helper_again ; If the timer overflows, we assume there is no signal
     jb P0.0, synch1
 synch2:    
-	jb TF2, no_signal_helper
+	jb TF2, no_signal0_helper_again
     jnb P0.0, synch2
     
     ; Measure the period of the signal applied to pin P0.0
@@ -320,16 +320,22 @@ measure2:
     mov x+2, #0
     mov x+3, #0
     lcall mul32
+   	ljmp next
+no_signal0_helper_again:
+	ljmp no_signal_helper
+    next:
     Load_y(1000)
     lcall div32
     Set_cursor(1,4)
     lcall hex2bcd
     lcall Display_10_digit_BCD
-    
-    Load_y(500000)
+     ; x has the period at this point
+    Load_y(398000)
+    lcall x_gt_y
+    jb mf, pin1period
+    Load_y(392000)
     lcall x_lt_y
     jb mf, no_signal
-    
     clr TR0 ; when a hit is detected, stop the buzzer
     ; Handle winning a point
     jb HLbit, dec_score1
@@ -415,12 +421,12 @@ measure2_1:
     Load_y(1000)
     lcall div32
     ; x has the period at this point
-    Load_y(6000)
+    Load_y(440000)
     lcall x_gt_y
     jb mf, no_signal_1
     lcall hex2bcd
     lcall Display_10_digit_BCD
-    Load_y(4000)
+    Load_y(407000)
     lcall x_lt_y
     jb mf, no_signal_1
     
