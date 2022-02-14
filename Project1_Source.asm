@@ -261,13 +261,17 @@ forever:
 	; if there is a winner, declare the winner
 	
 	; to be done soon
-	
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
 	
 	; Wait a random time before playing the next sound
 	; Once a sound plays, it plays indefinitely till a slap occurs
 	; Once a slap occurs, calculate points, and wait to play the next sound
 	; To wait for a slap to occur, potentially use some sort of loop
-	
+	;Wait_Milli_Seconds(#250)
+	;Wait_Milli_Seconds(#250)	
 	clr TR0
 	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
@@ -276,10 +280,9 @@ tooSlow:
 	clr TR1
 	clr abortFlag
 	clr TR0 ; stop the buzzer
-	Wait_Milli_Seconds(#250)
-	Wait_Milli_Seconds(#250)
+	;Wait_Milli_Seconds(#250)
+	;Wait_Milli_Seconds(#250)
 	Set_cursor(1,12)
-	Display_char(#'$')
 	ljmp forever
 
 ; Determine period of 555 Timer for player 1
@@ -305,10 +308,10 @@ synch2:
     clr TF2
     setb TR2 ; Start timer 2
 measure1:
-	jb TF2, no_signal
+	jb TF2, no_signal_helper
     jb P0.0, measure1
 measure2:    
-	jb TF2, no_signal
+	jb TF2, no_signal_helper
     jnb P0.0, measure2
     clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
     Load_y(45211)
@@ -319,8 +322,11 @@ measure2:
     lcall mul32
     Load_y(1000)
     lcall div32
+    Set_cursor(1,4)
+    lcall hex2bcd
+    lcall Display_10_digit_BCD
     
-    Load_y(208000)
+    Load_y(500000)
     lcall x_lt_y
     jb mf, no_signal
     
@@ -368,6 +374,8 @@ zero_3x_bytes_0:
 
 ; Determine period for 555 timer for player 2
 pin1period:
+	Wait_Milli_Seconds(#100)
+	
     ; synchronize with rising edge of the signal applied to pin P0.0
     clr TR2 ; Stop timer 2
     mov TL2, #0
@@ -375,10 +383,10 @@ pin1period:
     clr TF2 ; clear timer1 overflow flag
     setb TR2
 synch1_1:
-	jb TF2, no_signal_1_helper ; If the timer overflows, we assume there is no signal
+	jb TF2, no_signal_helper_again ; If the timer overflows, we assume there is no signal
     jb P0.1, synch1_1
 synch2_1:    
-	jb TF2, no_signal_1_helper
+	jb TF2, no_signal_helper_again
     jnb P0.1, synch2_1
     
     ; Measure the period of the signal applied to pin P0.0
@@ -387,23 +395,32 @@ synch2_1:
     mov TH2, #0
     clr TF2
     setb TR2 ; Start timer 2
+	ljmp measure1_1
+no_signal_helper_again:
+	ljmp no_signal_1_helper
 measure1_1:
-	jb TF2, no_signal_1
+	jb TF2, no_signal_1_helper
     jb P0.1, measure1_1
 measure2_1:    
-	jb TF2, no_signal_1
+	jb TF2, no_signal_1_helper
     jnb P0.1, measure2_1
     clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
     Load_y(45211)
     mov x+0, TL2
     mov x+1, TH2
+    Set_cursor(2,4)
     mov x+2, #0
     mov x+3, #0
     lcall mul32
     Load_y(1000)
     lcall div32
-    
-    Load_y(208000)
+    ; x has the period at this point
+    Load_y(6000)
+    lcall x_gt_y
+    jb mf, no_signal_1
+    lcall hex2bcd
+    lcall Display_10_digit_BCD
+    Load_y(4000)
     lcall x_lt_y
     jb mf, no_signal_1
     
@@ -440,7 +457,6 @@ pin1_return:
     
 no_signal_1:	
 	Set_Cursor(2, 15)
-   	Display_char(#'!')
     ljmp pin0period ; Repeat! 
     
 zero_3x_bytes_1:
