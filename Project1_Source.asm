@@ -68,6 +68,10 @@ $LIST
 Initial_Message:  db 'Period (ns):   ', 0
 No_Signal_Str:    db 'No signal      ', 0
 No_Signal_Str1:  db 'No signal T1', 0
+Score1_Str:      db  'Score1: 00', 0
+Score2_Str:      db  'Score2: 00', 0
+Player_Wins:	db 'Player   Wins!  ', 0
+
 
 ; Sends 10-digit BCD number in bcd to the LCD
 Display_10_digit_BCD:
@@ -225,6 +229,11 @@ main:
     clr abortFlag
     mov Score1, #0
     mov Score2, #0
+    Set_cursor(1, 1)
+    Send_Constant_String(#Score1_Str)
+    Set_cursor(2, 1)
+    Send_Constant_String(#Score2_Str)
+    
     
     clr P2.0
 
@@ -235,6 +244,7 @@ main:
 forever:
 
 	; First part of the game: decide which freq to buzz at
+	
 	lcall Random
 	mov a, Seed+1
 	mov c, acc.3
@@ -255,11 +265,47 @@ forever:
 		setb TR0
 	
 	lcall pin0period ; start check for capacitance (resulting in period) change
+	mov x+0 , Score1
+	mov x+1 , #0
+	mov x+2 , #0
+	mov x+3 , #0
+	Load_y(5)
+	lcall x_eq_y
+	jb mf, Win_Routine1
+    mov x+0 , Score2
+	mov x+1 , #0
+	mov x+2 , #0
+	mov x+3 , #0
+	lcall x_eq_y
+	jb mf, Win_Routine2
+ljmp No_Win
+	
+	
+Win_Routine1:
+	WriteCommand(#0x01)
+	Wait_Milli_Seconds(#2)
+	Set_cursor(1,1)
+	Send_Constant_String(#Player_Wins)
+	Set_cursor(1,7)
+	Display_char(#'1')
+ljmp Reset
+	
+	
+
+
+Win_Routine2:
+	WriteCommand(#0x01)
+	Wait_Milli_Seconds(#2)
+	Set_cursor(1,1)
+	Send_Constant_String(#Player_Wins)
+	Set_cursor(1,7)
+	Display_char(#'2')
+ljmp Reset	
 	
 	; When pin0_period returns, a player will have either won a point or lost a 
 	; point (unless already at zero). Now we need to update scoreboard and 
 	; if there is a winner, declare the winner
-	
+No_Win:
 	; to be done soon
 	Wait_Milli_Seconds(#250)
 	Wait_Milli_Seconds(#250)
@@ -275,6 +321,9 @@ forever:
 	clr TR0
 	lcall Wait_Random ; wait a random amount of time before playing the next tone
 	ljmp forever
+
+Reset:
+	ljmp Reset
 	
 tooSlow:
 	clr TR1
@@ -282,7 +331,6 @@ tooSlow:
 	clr TR0 ; stop the buzzer
 	Wait_Milli_Seconds(#250)
 	Wait_Milli_Seconds(#250)
-	Set_cursor(1,12)
 	ljmp forever
 
 ; Determine period of 555 Timer for player 1
@@ -326,14 +374,11 @@ no_signal0_helper_again:
     next:
     Load_y(1000)
     lcall div32
-    Set_cursor(1,4)
-    lcall hex2bcd
-    lcall Display_10_digit_BCD
      ; x has the period at this point
-    Load_y(398000)
+    Load_y(402000)
     lcall x_gt_y
     jb mf, pin1period
-    Load_y(392000)
+    Load_y(393000)
     lcall x_lt_y
     jb mf, no_signal
     clr TR0 ; when a hit is detected, stop the buzzer
@@ -359,7 +404,7 @@ dec_score1:
 
 pin0_return:
 	; Convert the result to BCD and display on LCD
-	Set_Cursor(1, 1)
+	Set_Cursor(1, 9)
 	mov x, Score1
 	lcall zero_3x_bytes_0
 	lcall hex2bcd
@@ -368,8 +413,6 @@ pin0_return:
     ret 
 
 no_signal:	
-	Set_Cursor(2, 15)
-   	Display_char(#'!')
     ljmp pin1period
 
 zero_3x_bytes_0:
@@ -414,7 +457,7 @@ measure2_1:
     Load_y(45211)
     mov x+0, TL2
     mov x+1, TH2
-    Set_cursor(2,4)
+    ;Set_cursor(2,4)
     mov x+2, #0
     mov x+3, #0
     lcall mul32
@@ -424,8 +467,8 @@ measure2_1:
     Load_y(440000)
     lcall x_gt_y
     jb mf, no_signal_1
-    lcall hex2bcd
-    lcall Display_10_digit_BCD
+    ;lcall hex2bcd
+    ;lcall Display_10_digit_BCD
     Load_y(407000)
     lcall x_lt_y
     jb mf, no_signal_1
@@ -453,7 +496,7 @@ dec_score2:
 
 pin1_return:
 	; Convert the result to BCD and display on LCD
-	Set_Cursor(2, 1)
+	Set_Cursor(2, 9)
 	mov x, Score2
 	lcall zero_3x_bytes_1
 	lcall hex2bcd
@@ -462,7 +505,6 @@ pin1_return:
     ret 
     
 no_signal_1:	
-	Set_Cursor(2, 15)
     ljmp pin0period ; Repeat! 
     
 zero_3x_bytes_1:
