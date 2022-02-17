@@ -59,6 +59,7 @@ LCD_D7 equ P3.7
 
 SOUND_OUT equ P1.1
 BOOT_BUTTON equ P4.5
+RESET_BUTTON equ P0.4
 
 $NOLIST
 $include(LCD_4bit.inc) ; A library of LCD related functions and utility macros
@@ -71,7 +72,7 @@ No_Signal_Str1:  db 'No signal T1', 0
 Score1_Str:      db  'Score1: 00', 0
 Score2_Str:      db  'Score2: 00', 0
 Player_Wins:	db 'Player   Wins!  ', 0
-
+Play_Again:     db 'Play again', 0
 
 ; Sends 10-digit BCD number in bcd to the LCD
 Display_10_digit_BCD:
@@ -222,6 +223,9 @@ main:
     ; Initialize the hardware:
     mov SP, #7FH
     lcall Initialize_All
+    main2:
+    WriteCommand(#0x01)
+	Wait_Milli_Seconds(#5)
     setb P0.0 ; Pin is used as input for 555 timer for timer/counter2
     setb P0.1 ; Pin for 555 timer for timer/counter1
     clr HLbit 
@@ -288,11 +292,10 @@ Win_Routine1:
 	Send_Constant_String(#Player_Wins)
 	Set_cursor(1,7)
 	Display_char(#'1')
-ljmp Reset
+	Set_cursor(2,1)
+	Send_Constant_String(#Play_Again)
+	ljmp Reset
 	
-	
-
-
 Win_Routine2:
 	WriteCommand(#0x01)
 	Wait_Milli_Seconds(#2)
@@ -300,7 +303,9 @@ Win_Routine2:
 	Send_Constant_String(#Player_Wins)
 	Set_cursor(1,7)
 	Display_char(#'2')
-ljmp Reset	
+	Set_cursor(2,1)
+	Send_Constant_String(#Play_Again)
+	ljmp Reset	
 	
 	; When pin0_period returns, a player will have either won a point or lost a 
 	; point (unless already at zero). Now we need to update scoreboard and 
@@ -323,7 +328,8 @@ No_Win:
 	ljmp forever
 
 Reset:
-	ljmp Reset
+	jb RESET_BUTTON, Reset
+	ljmp main2
 	
 tooSlow:
 	clr TR1
@@ -375,10 +381,13 @@ no_signal0_helper_again:
     Load_y(1000)
     lcall div32
      ; x has the period at this point
-    Load_y(402000)
+    lcall hex2bcd
+    ;Set_cursor(2,1)
+    ;lcall Display_10_digit_BCD
+    Load_y(407000)
     lcall x_gt_y
     jb mf, pin1period
-    Load_y(393000)
+    Load_y(394000)
     lcall x_lt_y
     jb mf, no_signal
     clr TR0 ; when a hit is detected, stop the buzzer
@@ -464,12 +473,15 @@ measure2_1:
     Load_y(1000)
     lcall div32
     ; x has the period at this point
+    ;Set_cursor(1,1)
+    ;lcall hex2bcd
+    ;lcall Display_10_digit_BCD
     Load_y(440000)
     lcall x_gt_y
     jb mf, no_signal_1
     ;lcall hex2bcd
     ;lcall Display_10_digit_BCD
-    Load_y(407000)
+    Load_y(404000)
     lcall x_lt_y
     jb mf, no_signal_1
     
