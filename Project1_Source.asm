@@ -47,6 +47,24 @@ TIMER0_RELOAD2 EQU ((65536-(CLK/TIMER0_RATE2))) ; HIGH TONE
 TIMER1_RATE1   EQU 500     ; 250Hz squarewave (peak amplitude of CEM-1203 speaker) ; Pin 1.1
 TIMER1_RELOAD1 EQU ((65536-(CLK/TIMER1_RATE1))) ; LOW TONE
 
+; TONE FREQUENCY
+
+A5_RATE			EQU ((65536-(CLK/(2*A5_FREQUENCY))))
+A5_FREQUENCY	EQU 440
+A5b_RATE		EQU ((65536-(CLK/(2*A5b_FREQUENCY))))
+A5b_FREQUENCY	EQU 415
+B5_RATE			EQU ((65536-(CLK/(2*B5_FREQUENCY))))
+B5_FREQUENCY	EQU 494
+B5b_RATE		EQU ((65536-(CLK/(2*B5b_FREQUENCY))))
+B5b_FREQUENCY	EQU 466
+C5_RATE			EQU ((65536-(CLK/(2*C5_FREQUENCY))))
+C5_FREQUENCY	EQU 523
+D5_RATE			EQU ((65536-(CLK/(2*D5_FREQUENCY))))
+D5_FREQUENCY	EQU 622
+E5_RATE			EQU ((65536-(CLK/(2*E5_FREQUENCY))))
+E5_FREQUENCY	EQU 660
+
+
 
 ; These 'equ' must match the hardware wiring
 LCD_RS equ P3.2
@@ -73,6 +91,8 @@ Score1_Str:      db  'Score1: 00', 0
 Score2_Str:      db  'Score2: 00', 0
 Player_Wins:	db 'Player   Wins!  ', 0
 Play_Again:     db 'Play again', 0
+Menu_String1: 	db 'Hold BOOT to', 0
+Menu_String2:	db 'Start game', 0
 
 ; Sends 10-digit BCD number in bcd to the LCD
 Display_10_digit_BCD:
@@ -166,11 +186,12 @@ InitTimer2:
 	setb ET2
     ret
     
-Init_Seed:
+Init_Seed3:
 	; Wait for a push of the BOOT button
 	; to initialize random seed:
 	setb TR2
-	jb BOOT_BUTTON, $
+	;jb BOOT_BUTTON, $
+
 	Set_Cursor(2,1)
 	Display_char(#'!')
 	mov Seed+0, TH2
@@ -178,7 +199,7 @@ Init_Seed:
     mov Seed+2, #0x87
     mov Seed+3, TL2
     clr TR2
-    ret
+    ljmp main2
     
 Random:
 	; Seed = 214013*Seed + 2531011
@@ -195,6 +216,76 @@ Random:
 	mov Seed+2, x+2
 	mov Seed+3, x+3
 	ret
+	
+Play_A5_2:
+	clr TR0
+	mov TH0, #high(A5_RATE)
+	mov TL0, #low(A5_RATE)
+	; Set autoreload value
+	mov RH0, #high(A5_RATE)
+	mov RL0, #low(A5_RATE)
+	setb TR0
+	ret
+	
+Play_A5b:
+	clr TR0
+	mov TH0, #high(A5b_RATE)
+	mov TL0, #low(A5b_RATE)
+	; Set autoreload value
+	mov RH0, #high(A5b_RATE)
+	mov RL0, #low(A5b_RATE)
+	setb TR0
+	ret
+	
+Play_B5:
+	clr TR0
+	mov TH0, #high(B5_RATE)
+	mov TL0, #low(B5_RATE)
+	; Set autoreload value
+	mov RH0, #high(B5_RATE)
+	mov RL0, #low(B5_RATE)
+	setb TR0
+	ret
+	
+Play_B5b:
+	clr TR0
+	mov TH0, #high(B5b_RATE)
+	mov TL0, #low(B5b_RATE)
+	; Set autoreload value
+	mov RH0, #high(B5b_RATE)
+	mov RL0, #low(B5b_RATE)
+	setb TR0
+	ret
+	
+Play_C5:
+	clr TR0
+	mov TH0, #high(C5_RATE)
+	mov TL0, #low(C5_RATE)
+	; Set autoreload value
+	mov RH0, #high(C5_RATE)
+	mov RL0, #low(C5_RATE)
+	setb TR0
+	ret
+		
+Play_D5:
+	clr TR0
+	mov TH0, #high(D5_RATE)
+	mov TL0, #low(D5_RATE)
+	; Set autoreload value
+	mov RH0, #high(D5_RATE)
+	mov RL0, #low(D5_RATE)
+	setb TR0
+	ret
+	
+Play_E5:
+	clr TR0
+	mov TH0, #high(E5_RATE)
+	mov TL0, #low(E5_RATE)
+	; Set autoreload value
+	mov RH0, #high(E5_RATE)
+	mov RL0, #low(E5_RATE)
+	setb TR0
+	ret
 
 Wait_Random:
 	Wait_Milli_Seconds(Seed+0)
@@ -202,7 +293,146 @@ Wait_Random:
 	Wait_Milli_Seconds(Seed+2)
 	Wait_Milli_Seconds(Seed+3)
 	ret
+	
+Play_A5:
+	ljmp Play_A5_2
+	
+Init_Seed2:
+	ljmp Init_Seed3
+	
+Tetris:
+	lcall Play_E5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#83)
+	jnb BOOT_BUTTON, Init_Seed2
+	lcall Play_B5
+	Wait_Milli_Seconds(#168)
+	lcall Play_C5
+	Wait_Milli_Seconds(#168)
+	lcall Play_D5
+	Wait_Milli_Seconds(#168)
+	jnb BOOT_BUTTON, Init_Seed2
+	lcall Play_E5
+	Wait_Milli_Seconds(#84)
+	lcall Play_D5
+	Wait_Milli_Seconds(#84)
+	lcall Play_C5
+	Wait_Milli_Seconds(#164)
+	lcall Play_B5
+	Wait_Milli_Seconds(#164)
+	jnb BOOT_BUTTON, Init_Seed2
+	lcall Play_A5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#83)
+	lcall WaitNote
+	lcall Play_A5
+	Wait_Milli_Seconds(#168)
+	lcall Play_C5
+	Wait_Milli_Seconds(#168)
+	lcall Play_E5
+	Wait_Milli_Seconds(#250)
+	jnb BOOT_BUTTON, Init_Seed4
+	Wait_Milli_Seconds(#83)
+	lcall Play_D5
+	Wait_Milli_Seconds(#168)
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#168)
+	lcall WaitNote
+	lcall Play_B5
+	Wait_Milli_Seconds(#250)
+	ljmp nextttt
+	
+Init_Seed4:
+	ljmp Init_Seed
+	
+nextttt:
+	Wait_Milli_Seconds(#83)
+	jnb BOOT_BUTTON, Init_Seed
+	lcall Play_B5
+	Wait_Milli_Seconds(#84)
+	lcall WaitNote
+	lcall Play_B5
+	Wait_Milli_Seconds(#84)
+	lcall Play_C5
+	Wait_Milli_Seconds(#168)
+	lcall Play_D5
+	Wait_Milli_Seconds(#250)
+	jnb BOOT_BUTTON, Init_Seed
+	Wait_Milli_Seconds(#83)
+	lcall Play_E5
+	ljmp nextt
+	
+Init_Seed:
+	ljmp Init_Seed2
+	
+nextt:
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#83)
+	jnb BOOT_BUTTON, Init_Seed
+	lcall Play_C5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#83)
+	jnb BOOT_BUTTON, Init_Seed
+	lcall Play_A5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#83)
+	lcall WaitNote
+	jnb BOOT_BUTTON, Init_Seed
+	lcall Play_A5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	jnb BOOT_BUTTON, Init_Seed
+	Wait_Milli_Seconds(#167)
+	
+	lcall Tetris
+	
+FF7:
+	lcall Play_C5
+	Wait_Milli_Seconds(#140)
 
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#140)
+
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#140)
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#150)
+	lcall WaitNote
+	lcall Play_A5b
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#150)
+	lcall WaitNote
+	lcall Play_B5b
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#150)
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#250)
+	lcall WaitNote
+	lcall Play_B5b
+	Wait_Milli_Seconds(#140)
+	lcall WaitNote
+	lcall Play_C5
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+	Wait_Milli_Seconds(#250)
+
+	ret
+
+WaitNote:
+	clr TR0
+	Wait_Milli_Seconds(#8)
+	setb TR0
+ret
+	
 ;---------------------------------;
 ; Hardware initialization         ;
 ;---------------------------------;
@@ -212,7 +442,8 @@ Initialize_All:
     lcall InitTImer1
     lcall LCD_4BIT ; Initialize LCD
     setb EA
-    lcall Init_Seed
+    ;lcall Tetris
+    ;lcall Init_Seed
  	
 	ret
 
@@ -223,7 +454,13 @@ main:
     ; Initialize the hardware:
     mov SP, #7FH
     lcall Initialize_All
-    main2:
+    Set_cursor(1,1)
+    Send_Constant_String(#Menu_String1)
+    Set_cursor(2,1)
+    Send_Constant_String(#Menu_String2)
+    ;lcall FF7
+    ljmp Tetris
+main2:
     WriteCommand(#0x01)
 	Wait_Milli_Seconds(#5)
     setb P0.0 ; Pin is used as input for 555 timer for timer/counter2
@@ -294,6 +531,8 @@ Win_Routine1:
 	Display_char(#'1')
 	Set_cursor(2,1)
 	Send_Constant_String(#Play_Again)
+	lcall FF7
+	clr TR0
 	ljmp Reset
 	
 Win_Routine2:
@@ -305,6 +544,8 @@ Win_Routine2:
 	Display_char(#'2')
 	Set_cursor(2,1)
 	Send_Constant_String(#Play_Again)
+	lcall FF7
+	clr TR0
 	ljmp Reset	
 	
 	; When pin0_period returns, a player will have either won a point or lost a 
@@ -328,7 +569,7 @@ No_Win:
 	ljmp forever
 
 Reset:
-	jb RESET_BUTTON, Reset
+	jnb RESET_BUTTON, Reset
 	ljmp main2
 	
 tooSlow:
@@ -460,6 +701,7 @@ measure1_1:
 	jb TF2, no_signal_1_helper
     jb P0.1, measure1_1
 measure2_1:    
+
 	jb TF2, no_signal_1_helper
     jnb P0.1, measure2_1
     clr TR2 ; Stop timer 2, [TH2,TL2] * 45.21123ns is the period
