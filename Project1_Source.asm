@@ -190,7 +190,6 @@ Init_Seed3:
 	; Wait for a push of the BOOT button
 	; to initialize random seed:
 	setb TR2
-	;jb BOOT_BUTTON, $
 
 	Set_Cursor(2,1)
 	Display_char(#'!')
@@ -442,8 +441,6 @@ Initialize_All:
     lcall InitTImer1
     lcall LCD_4BIT ; Initialize LCD
     setb EA
-    ;lcall Tetris
-    ;lcall Init_Seed
  	
 	ret
 
@@ -623,8 +620,6 @@ no_signal0_helper_again:
     lcall div32
      ; x has the period at this point
     lcall hex2bcd
-    ;Set_cursor(2,1)
-    ;lcall Display_10_digit_BCD
     Load_y(407000)
     lcall x_gt_y
     jb mf, pin1period
@@ -634,10 +629,6 @@ no_signal0_helper_again:
     clr TR0 ; when a hit is detected, stop the buzzer
     ; Handle winning a point
     jb HLbit, dec_score1
-    ;mov a, Score1
-    ;add a, #1
-    ;da a
-    ;mov Score1, a
     inc Score1
     ljmp pin0_return
     
@@ -647,9 +638,6 @@ no_signal_helper:
 dec_score1:
 	mov a, Score1
 	jz pin0_return
-	;add a, #99
-	;da a
-	;mov Score1, a
 	dec Score1
 
 pin0_return:
@@ -658,7 +646,6 @@ pin0_return:
 	mov x, Score1
 	lcall zero_3x_bytes_0
 	lcall hex2bcd
-	;lcall Display_10_digit_BCD
 	Display_BCD(Score1)
     ret 
 
@@ -708,21 +695,14 @@ measure2_1:
     Load_y(45211)
     mov x+0, TL2
     mov x+1, TH2
-    ;Set_cursor(2,4)
     mov x+2, #0
     mov x+3, #0
     lcall mul32
     Load_y(1000)
     lcall div32
-    ; x has the period at this point
-    ;Set_cursor(1,1)
-    ;lcall hex2bcd
-    ;lcall Display_10_digit_BCD
     Load_y(440000)
     lcall x_gt_y
     jb mf, no_signal_1
-    ;lcall hex2bcd
-    ;lcall Display_10_digit_BCD
     Load_y(404000)
     lcall x_lt_y
     jb mf, no_signal_1
@@ -730,10 +710,6 @@ measure2_1:
     clr TR0 ; when a hit is detected, stop the buzzer
 ; Handle a press depending on tone
     jb HLbit, dec_score2
-    ;mov a, Score2
-    ;add a, #1
-    ;da a
-    ;mov Score1, a
     inc Score2
     ljmp pin1_return
     
@@ -743,9 +719,6 @@ no_signal_1_helper:
 dec_score2:
 	mov a, Score2
 	jz pin1_return ; if already zero, go to end
-	;add a, #99
-	;da a
-	;mov Score2, a
 	dec Score2
 
 pin1_return:
@@ -754,7 +727,6 @@ pin1_return:
 	mov x, Score2
 	lcall zero_3x_bytes_1
 	lcall hex2bcd
-	;lcall Display_10_digit_BCD
 	Display_BCD(Score2)
     ret 
     
